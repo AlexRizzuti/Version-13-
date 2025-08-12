@@ -1,18 +1,16 @@
-
 // Alex's Hybrid — v5 (Guided + Smart Swaps + Tips + Settings fix)
 (function(){
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r=>r.unregister())).catch(()=>{});
-  }
+  // localStorage helpers
   const LS = {
     get(k,d=null){ try{return JSON.parse(localStorage.getItem(k)) ?? d}catch(_){return d} },
     set(k,v){ localStorage.setItem(k, JSON.stringify(v)) }
   };
   const $ = (s)=>document.querySelector(s);
   const on = (s,e,fn)=>{ const el=$(s); if(el) el.addEventListener(e,fn); };
-  function setTxt(id,txt){ const el=document.getElementById(id); if(el) el.textContent=txt; }
-  function val(id){ const el=document.getElementById(id); return el?el.value:''; }
+  const setTxt=(id,t)=>{const el=document.getElementById(id); if(el) el.textContent=t;};
+  const val=(id)=>{const el=document.getElementById(id); return el?el.value:'';};
 
+  // Beep
   let AC=null, sound = LS.get('soundOn', true);
   function beep(freq=880,dur=0.08,vol=60){
     if(!sound) return;
@@ -23,12 +21,12 @@
       o.connect(g).connect(AC.destination); o.start(); setTimeout(()=>o.stop(), dur*1000);
     }catch(e){}
   }
-  function flash(t){
-    const s=$('#status'); if(!s) return;
-    s.textContent=t; s.style.background='var(--accent)'; s.style.color='#062016';
+  function flash(t){ const s=$('#status'); if(!s) return; s.textContent=t;
+    s.style.background='var(--accent)'; s.style.color='#062016';
     setTimeout(()=>{ s.textContent='Ready'; s.style.background='var(--card)'; s.style.color='var(--muted)'; }, 1400);
   }
 
+  // Plan & descriptions (same as we discussed)
   const ex=(name,sets,reps,rest,equip,cat,swaps)=>({name,sets,reps,rest,equip,cat,swaps:swaps||[],originalName:name});
   const PLAN = { days:[
     { id:"Day 1 – Power + Lower", blocks:[
@@ -70,116 +68,53 @@
 
   const DESC = {
     "Back Squat":"Bar on upper traps, brace, sit between hips, knees over toes.",
-    "Romanian Deadlift":"Hinge; soft knees; bar slides along thighs; neutral back.",
-    "Bulgarian Split Squat":"Back foot elevated; tall torso; front shin vertical.",
-    "Box Jump":"Load hips & arms, jump softly, stand tall to finish.",
+    "Romanian Deadlift":"Hinge; soft knees; bar along thighs; neutral back.",
+    "Bulgarian Split Squat":"Back foot up; tall torso; front shin near vertical.",
+    "Box Jump":"Load hips/arms, jump softly, stand tall.",
     "Plank":"Elbows under shoulders; ribs down; glutes tight; straight line.",
-    "Bench Press":"Feet planted; bar to mid-chest; elbows ~45°; press to lockout.",
-    "Overhead Press":"Bar from shoulders to overhead; head through; ribs down.",
+    "Bench Press":"Feet planted; bar mid-chest; elbows ~45°; press to lockout.",
+    "Overhead Press":"From shoulders to overhead; head through; ribs down.",
     "Dumbbell Incline Press":"30–45° bench; DBs to chest line; press up.",
-    "Medicine Ball Slam":"Reach tall; hinge; drive ball down explosively.",
+    "Medicine Ball Slam":"Reach tall; hinge; drive ball down hard.",
     "Battle Rope Waves":"Athletic stance; quick even waves; torso quiet.",
-    "Sled Push":"Forward lean; neutral spine; short powerful steps.",
-    "Kettlebell Swing":"Hinge; snap hips; bell floats to chest height.",
-    "Burpees":"Hands down; jump to plank; back to feet; small jump.",
-    "Hanging Leg Raise":"Dead hang; raise legs without swinging.",
+    "Sled Push":"Forward lean; short powerful steps.",
+    "Kettlebell Swing":"Hinge; snap hips; bell floats chest height.",
+    "Burpees":"Hands down; plank; back to feet; small jump.",
+    "Hanging Leg Raise":"Dead hang; raise legs without swing.",
     "Side Plank":"Feet stacked; elbow under shoulder; hips high.",
     "Pull-Ups":"Overhand; chest to bar; control down.",
     "Bent-Over Barbell Row":"Hinge ~45°; pull to ribs; back flat.",
     "Seated Cable Row":"Tall torso; pull to ribs; squeeze blades.",
     "Face Pull":"Rope to eye line; elbows high; thumbs back.",
-    "Farmer’s Carry":"Heavy bells at sides; tall; brisk walk.",
-    "Jump Squat":"Quarter-squat and jump; land softly.",
-    "Explosive Push-Ups":"Powerful push; core tight; hands light/off floor.",
-    "Med Ball Overhead Throw":"Dip then drive ball up/forward explosively.",
-    "KB Clean & Press (each arm)":"Rack clean; press overhead; glutes tight.",
-    "Mountain Climbers":"Plank; knees drive under chest; hips level."
+    "Farmer’s Carry":"Heavy bells; tall; brisk walk.",
+    "Jump Squat":"Quarter-squat and jump; land soft.",
+    "Explosive Push-Ups":"Power push; core tight.",
+    "Med Ball Overhead Throw":"Dip then drive up/forward.",
+    "KB Clean & Press (each arm)":"Rack clean; press overhead.",
+    "Mountain Climbers":"Plank; knees under chest; hips level."
   };
 
-  const EQUIP_ALL = ["Barbell","Dumbbells","Kettlebell","Cable/Machine","Bands","Bodyweight","Med Ball","Sled/Prowler","Battle Rope","Erg/Row/Ski","Landmine"];
-  const defaultEquip = Object.fromEntries(EQUIP_ALL.map(e=>[e,true]));
-  const state = { day:+LS.get('currentDay',0), cursor:0, guided:LS.get('guided',true) };
+  const EQUIP_ALL=["Barbell","Dumbbells","Kettlebell","Cable/Machine","Bands","Bodyweight","Med Ball","Sled/Prowler","Battle Rope","Erg/Row/Ski","Landmine"];
+  const defaultEquip=Object.fromEntries(EQUIP_ALL.map(e=>[e,true]));
+  const state={ day:+LS.get('currentDay',0), cursor:0, guided:LS.get('guided',true) };
 
   function applyTheme(light){ document.documentElement.setAttribute('data-theme', light?'light':'dark'); }
   function updateThemeBadge(){ $('#themeBadge').textContent = document.documentElement.getAttribute('data-theme')==='light' ? 'Light' : 'Dark'; }
 
   function mount(){
-    const root=document.createElement('div'); root.className='container'; root.innerHTML = `
-      <header>
-        <h1>Alex’s Hybrid</h1>
-        <span class="badge" id="themeBadge">Dark</span>
-        <label class="toggle"><input id="themeToggle" type="checkbox"><span>Light mode</span></label>
-        <button id="settingsBtn" class="ghost">⚙️ Settings</button>
-        <button id="guidedBtn" class="ghost">🎧 Guided: ${state.guided?'On':'Off'}</button>
-      </header>
+    // theme
+    const pref=LS.get('themeLight',null), sysLight=window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const isLight=pref===null?sysLight:!!pref; applyTheme(isLight);
+    document.body.querySelector('#themeToggle')?.setAttribute('checked',isLight);
+    on('#themeToggle','change',e=>{ const light=e.target.checked; applyTheme(light); LS.set('themeLight',light); updateThemeBadge(); });
+    updateThemeBadge();
 
-      <div class="controls">
-        <select id="daySelect"></select>
-        <button id="backExercise" class="ghost">← Back</button>
-        <button id="nextExercise" class="ghost">Next →</button>
-        <button id="startBtn" class="primary">Start Workout</button>
-        <button id="finishBtn" class="ghost">Finish</button>
-        <button id="resetBtn" class="ghost">Reset</button>
-        <span class="badge" id="status">Ready</span>
-      </div>
+    // equipment default
+    LS.set('equip', LS.get('equip', defaultEquip));
 
-      <div id="workoutList" class="grid"></div>
-
-      <div class="card">
-        <h3>Timer</h3>
-        <div class="row">
-          <button id="workBtn" class="primary">Start Work</button>
-          <button id="restBtn" class="warn">Start Rest</button>
-          <button id="pauseBtn" class="ghost">Pause</button>
-          <button id="resumeBtn" class="ghost">Resume</button>
-          <button id="stopBtn" class="ghost">Stop</button>
-          <span class="badge timer-big" id="clock">00:00</span>
-        </div>
-        <div class="progress"><div id="bar"></div></div>
-        <div class="small" id="timerLabel">Idle</div>
-        <div class="row" style="margin-top:8px">
-          <label>Work (s): <input id="workSecs" type="number" value="45" min="1" style="width:80px"></label>
-          <label>Rest (s): <input id="restSecs" type="number" value="60" min="1" style="width:80px"></label>
-          <button id="soundToggle" class="ghost">🔔 Sound: ${sound?'On':'Off'}</button>
-        </div>
-      </div>
-
-      <div class="modal" id="swapModal">
-        <div class="sheet">
-          <header><h3 id="swapTitle" style="margin:0;font-size:18px">Swap Exercise</h3><span class="x" id="swapClose">✕</span></header>
-          <div class="chips" id="swapMeta"></div>
-          <input id="swapSearch" type="text" placeholder="Search exercise…"/>
-          <div class="list" id="swapList"></div>
-          <div class="row" style="margin-top:10px;justify-content:flex-end">
-            <button id="swapRevert" class="ghost">↩︎ Revert to Original</button>
-            <button id="swapApply" class="primary">Apply</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal" id="settingsModal">
-        <div class="sheet">
-          <header><h3 style="margin:0;font-size:18px">Settings — Equipment</h3><span class="x" id="settingsClose">✕</span></header>
-          <div class="settings-grid" id="equipGrid"></div>
-          <div class="small">Turn OFF anything you don’t have (e.g., Med Ball). Suggestions will match.</div>
-          <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="settingsSave" class="primary">Save</button></div>
-        </div>
-      </div>
-
-      <footer>Guided mode: “Set done” → auto-rest with chime, then prompt next set. Smart swaps respect your equipment.</footer>
-    `;
-    document.body.appendChild(root);
-
-    const pref = LS.get('themeLight', null);
-    const systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-    const isLight = pref===null ? systemLight : !!pref;
-    applyTheme(isLight); $('#themeToggle').checked = isLight; updateThemeBadge();
-    on('#themeToggle','change',e=>{ const light=e.target.checked; applyTheme(light); LS.set('themeLight', light); updateThemeBadge(); });
-
-    LS.set('equip', LS.get('equip', Object.fromEntries(["Barbell","Dumbbells","Kettlebell","Cable/Machine","Bands","Bodyweight","Med Ball","Sled/Prowler","Battle Rope","Erg/Row/Ski","Landmine"].map(e=>[e,true]))));
-
+    // day select
     const sel=$('#daySelect'); PLAN.days.forEach((d,i)=> sel.innerHTML+=`<option value="${i}">${d.id}</option>`); sel.value=state.day;
-    sel.onchange = e=>{ state.day=+e.target.value; LS.set('currentDay',state.day); state.cursor=0; renderDay(); };
+    sel.onchange=e=>{ state.day=+e.target.value; LS.set('currentDay',state.day); state.cursor=0; renderDay(); };
 
     on('#guidedBtn','click', ()=>{ state.guided=!state.guided; LS.set('guided',state.guided); $('#guidedBtn').textContent=`🎧 Guided: ${state.guided?'On':'Off'}`; flash(`Guided ${state.guided?'On':'Off'}`); });
     on('#settingsBtn','click', openSettings); on('#settingsClose','click',()=>$('#settingsModal').style.display='none'); on('#settingsSave','click', saveSettings);
@@ -188,6 +123,7 @@
     on('#resetBtn','click', resetDay);
     on('#backExercise','click', prevExercise);
     on('#nextExercise','click', nextExercise);
+
     on('#workBtn','click', ()=> startTimer(+val('workSecs')||45,'work'));
     on('#restBtn','click', ()=> startTimer(+val('restSecs')||60,'rest'));
     on('#pauseBtn','click', ()=>{ t.paused=true; setTxt('timerLabel','Paused'); });
@@ -231,7 +167,7 @@
         $('#'+id+'-count').value=v; $('#'+id+'-setsDone').textContent=v;
         const m=LS.get(`hybrid_done_day${state.day}`,{}); m[i]=v; LS.set(`hybrid_done_day${state.day}`,m);
         beep(880,0.06);
-        if(state.guided){ startTimer(parseInt(exercise.rest,10)||60,'rest'); setTxt('timerLabel',`Rest ${exercise.rest}s — next: ${exercise.name}`); }
+        if(state.guided){ const r=parseInt(exercise.rest,10)||60; startTimer(r,'rest'); setTxt('timerLabel',`Rest ${r}s — next: ${exercise.name}`); }
         if(v===exercise.sets){ flash('Completed!'); if(i===state.cursor) nextExercise(); }
       }
       if(btn.dataset.action==='swap'){ openSwap(i); }
@@ -246,6 +182,7 @@
   function nextExercise(){ const d=PLAN.days[state.day]; state.cursor=Math.min(d.blocks.length-1, state.cursor+1); renderDay(); }
   function prevExercise(){ state.cursor=Math.max(0, state.cursor-1); renderDay(); }
 
+  // Swap modal with suggested matches by pattern + equipment
   function openSwap(i){
     const day=PLAN.days[state.day]; const ex=day.blocks[i];
     const pool=Array.from(new Set(PLAN.days.flatMap(d=>d.blocks.flatMap(b=>[b.name,...(b.swaps||[]),b.originalName])))).filter(Boolean).sort();
@@ -257,19 +194,13 @@
     const eqAvail=LS.get('equip', defaultEquip);
     function isEquipOk(name){
       const key=name.toLowerCase();
-      const rules=[
-        ["barbell","Barbell"],["bench","Barbell"],["front squat","Barbell"],["deadlift","Barbell"],
-        ["dumbbell","Dumbbells"],[" db","Dumbbells"],
-        ["kettlebell","Kettlebell"],[" kb","Kettlebell"],
+      const rules=[ ["barbell","Barbell"],["bench","Barbell"],["deadlift","Barbell"],["front squat","Barbell"],
+        ["dumbbell","Dumbbells"],[" db","Dumbbells"],["kettlebell","Kettlebell"],[" kb","Kettlebell"],
         ["cable","Cable/Machine"],["machine","Cable/Machine"],["lat pulldown","Cable/Machine"],
-        ["band","Bands"],
-        ["med ball","Med Ball"],[" mb","Med Ball"],["slam","Med Ball"],["throw","Med Ball"],
-        ["sled","Sled/Prowler"],["prowler","Sled/Prowler"],
-        ["rope","Battle Rope"],
-        ["row erg","Erg/Row/Ski"],["skierg","Erg/Row/Ski"],["erg","Erg/Row/Ski"],
-        ["landmine","Landmine"],
-        ["push-up","Bodyweight"],["plank","Bodyweight"],["burpee","Bodyweight"],["jump","Bodyweight"],["pull-up","Bodyweight"]
-      ];
+        ["band","Bands"],["med ball","Med Ball"],[" mb","Med Ball"],["slam","Med Ball"],["throw","Med Ball"],
+        ["sled","Sled/Prowler"],["prowler","Sled/Prowler"],["rope","Battle Rope"],
+        ["row erg","Erg/Row/Ski"],["skierg","Erg/Row/Ski"],["erg","Erg/Row/Ski"],["landmine","Landmine"],
+        ["push-up","Bodyweight"],["plank","Bodyweight"],["burpee","Bodyweight"],["jump","Bodyweight"],["pull-up","Bodyweight"]];
       for(const [kw, tag] of rules){ if(key.includes(kw) && !eqAvail[tag]) return false; }
       return true;
     }
@@ -289,7 +220,6 @@
       if(/sled|erg|skierg|battle rope|burpee|mountain climber|sprint/.test(s)) return "Conditioning";
       return "Conditioning";
     }
-
     function build(){
       const arr=pool.map(n=>({name:n,cat:inferCat(n),score:0}));
       arr.forEach(o=>{
@@ -302,8 +232,8 @@
       const others=pool.filter(n=>!suggested.includes(n));
       return {suggested, others};
     }
+    const {suggested, others}=build();
 
-    const {suggested, others} = build();
     function draw(q=''){
       list.innerHTML='';
       const group=(title,items)=>{
@@ -324,6 +254,7 @@
     $('#swapApply').onclick=()=>{ if(chosen){ ex.name=chosen; modal.style.display='none'; renderDay(); } };
   }
 
+  // Timer
   const t={timer:null,remaining:0,total:0,paused:false,running:false};
   function startTimer(seconds,mode){
     stopTimer(); t.running=true; t.paused=false; t.remaining=seconds; t.total=seconds;
@@ -338,25 +269,29 @@
     t.remaining--;
     const mm=String(Math.floor(t.remaining/60)).padStart(2,'0'), ss=String(t.remaining%60).padStart(2,'0');
     setTxt('clock',`${mm}:${ss}`);
-    const p=Math.max(0,Math.min(100,100*((t.total-t.remaining)/t.total))); const bar=document.getElementById('bar'); if(bar) bar.style.width=p+'%';
+    const p=Math.max(0,Math.min(100,100*((t.total-t.remaining)/t.total)));
+    const bar=document.getElementById('bar'); if(bar) bar.style.width=p+'%';
     if(t.remaining<=3) beep(520+t.remaining*30,0.06);
   }
   function stopTimer(){ if(t.timer) clearInterval(t.timer); t.timer=null; t.running=false; setTxt('clock','00:00'); const bar=document.getElementById('bar'); if(bar) bar.style.width='0%'; setTxt('timerLabel','Idle'); }
   function resetDay(){ const d=PLAN.days[state.day]; d.blocks.forEach((b,i)=>{ const inp=document.getElementById(`ex-${i}-count`); if(inp){ inp.value=0; setTxt(`ex-${i}-setsDone`,'0'); } }); stopTimer(); flash('Reset'); }
 
+  // Settings
   function openSettings(){
     const eq=LS.get('equip',defaultEquip); const grid=$('#equipGrid'); grid.innerHTML='';
-    for(const name of ["Barbell","Dumbbells","Kettlebell","Cable/Machine","Bands","Bodyweight","Med Ball","Sled/Prowler","Battle Rope","Erg/Row/Ski","Landmine"]){
-      const id='eq-'+name.replace(/[^a-z0-9]/ig,'_'); const row=document.createElement('label'); row.innerHTML=`<input type="checkbox" id="${id}" ${eq[name]?'checked':''}> <span>${name}</span>`; grid.appendChild(row);
+    for(const name of EQUIP_ALL){
+      const id='eq-'+name.replace(/[^a-z0-9]/ig,'_'); const row=document.createElement('label');
+      row.innerHTML=`<input type="checkbox" id="${id}" ${eq[name]?'checked':''}> <span>${name}</span>`;
+      grid.appendChild(row);
     }
     $('#settingsModal').style.display='flex';
   }
   function saveSettings(){
-    const eq={}; for(const name of ["Barbell","Dumbbells","Kettlebell","Cable/Machine","Bands","Bodyweight","Med Ball","Sled/Prowler","Battle Rope","Erg/Row/Ski","Landmine"]){
+    const eq={}; for(const name of EQUIP_ALL){
       const id='eq-'+name.replace(/[^a-z0-9]/ig,'_'); const el=document.getElementById(id); eq[name]=!!(el&&el.checked);
     }
     LS.set('equip',eq); $('#settingsModal').style.display='none'; flash('Equipment saved');
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{ document.body.innerHTML=''; mount(); });
+  document.addEventListener('DOMContentLoaded', ()=>{ document.body.classList.add('ready'); mount(); });
 })();
