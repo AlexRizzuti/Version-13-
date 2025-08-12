@@ -75,3 +75,24 @@ footer{opacity:.7;font-size:12px;margin:24px 0 10px}
   overflow-wrap: anywhere;         /* break long tokens */
   line-height: 1.25;
 }
+/* ---- Settings label mobile fix (global) ---- */
+@media (max-width: 700px){
+  .settings-grid{ grid-template-columns: 1fr !important; }
+}
+
+.settings-grid label{
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.settings-grid label span{
+  flex: 1;
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+/* Optional: if you have another container for a standalone page */
+.settings-page .settings-grid{ grid-template-columns: 1fr !important; }
