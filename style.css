@@ -57,3 +57,21 @@ footer{opacity:.7;font-size:12px;margin:24px 0 10px}
   word-break: break-word;
   line-height: 1.3;
 }
+/* ---- Settings label mobile fix ---- */
+@media (max-width: 700px){
+  .settings-grid{ grid-template-columns: 1fr !important; }
+}
+
+.settings-grid label{
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;               /* comfy tap target */
+}
+
+.settings-grid label span{
+  flex: 1;                         /* take the row space next to the checkbox */
+  display: block;
+  white-space: normal;             /* allow wrapping */
+  overflow-wrap: anywhere;         /* break long tokens */
+  line-height: 1.25;
+}
