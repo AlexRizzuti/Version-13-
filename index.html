@@ -1,13 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alex’s Hybrid</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
-  <div id="app"></div>
-  <script src="app_v5.js?v=8"></script>
+  <div class="container">
+    <header>
+      <h1>Alex’s Hybrid</h1>
+      <span class="badge" id="themeBadge">Dark</span>
+      <label class="toggle"><input id="themeToggle" type="checkbox"><span>Light mode</span></label>
+      <button id="settingsBtn" class="ghost">⚙️ Settings</button>
+      <button id="guidedBtn" class="ghost">🎧 Guided: On</button>
+    </header>
+
+    <div class="controls">
+      <select id="daySelect"></select>
+      <button id="backExercise" class="ghost">← Back</button>
+      <button id="nextExercise" class="ghost">Next →</button>
+      <button id="startBtn" class="primary">Start Workout</button>
+      <button id="finishBtn" class="ghost">Finish</button>
+      <button id="resetBtn" class="ghost">Reset</button>
+      <span class="badge" id="status">Ready</span>
+    </div>
+
+    <div id="workoutList" class="grid"></div>
+
+    <div class="card">
+      <h3>Timer</h3>
+      <div class="row">
+        <button id="workBtn" class="primary">Start Work</button>
+        <button id="restBtn" class="warn">Start Rest</button>
+        <button id="pauseBtn" class="ghost">Pause</button>
+        <button id="resumeBtn" class="ghost">Resume</button>
+        <button id="stopBtn" class="ghost">Stop</button>
+        <span class="badge timer-big" id="clock">00:00</span>
+      </div>
+      <div class="progress"><div id="bar"></div></div>
+      <div class="small" id="timerLabel">Idle</div>
+      <div class="row" style="margin-top:8px">
+        <label>Work (s): <input id="workSecs" type="number" value="45" min="1" style="width:80px"></label>
+        <label>Rest (s): <input id="restSecs" type="number" value="60" min="1" style="width:80px"></label>
+        <button id="soundToggle" class="ghost">🔔 Sound: On</button>
+      </div>
+    </div>
+
+    <!-- Swap modal -->
+    <div class="modal" id="swapModal">
+      <div class="sheet">
+        <header><h3 id="swapTitle" style="margin:0;font-size:18px">Swap Exercise</h3><span class="x" id="swapClose">✕</span></header>
+        <div class="chips" id="swapMeta"></div>
+        <input id="swapSearch" type="text" placeholder="Search exercise…"/>
+        <div class="list" id="swapList"></div>
+        <div class="row" style="margin-top:10px;justify-content:flex-end">
+          <button id="swapRevert" class="ghost">↩︎ Revert to Original</button>
+          <button id="swapApply" class="primary">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div class="modal" id="settingsModal">
+      <div class="sheet">
+        <header><h3 style="margin:0;font-size:18px">Settings — Equipment</h3><span class="x" id="settingsClose">✕</span></header>
+        <div class="settings-grid" id="equipGrid"></div>
+        <div class="small">Turn OFF anything you don’t have (e.g., Med Ball). Suggestions will match.</div>
+        <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="settingsSave" class="primary">Save</button></div>
+      </div>
+    </div>
+
+    <footer>Guided mode: “Set done” → auto-rest with chime → next set. Smart swaps respect your equipment.</footer>
+
+    <noscript>
+      <div class="card" style="margin-top:12px">This app needs JavaScript enabled.</div>
+    </noscript>
+  </div>
+
+  <!-- Defer so the DOM exists before JS runs -->
+  <script src="app_v5.js?v=8" defer></script>
 </body>
 </html>
